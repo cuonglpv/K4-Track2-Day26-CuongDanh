@@ -77,5 +77,20 @@ class ProsecutorTests(unittest.TestCase):
         self.assertFalse(self.claims(events))
 
 
+    def test_non_responsive_off_topic_answer(self):
+        events = [ev(1, "answer", text="Day 26 covers MCP and A2A infrastructure.", cited_anchors=[])]
+        claims = self.claims(events, ask={"anchor": "Frame:d8f95a7b/w/045", "require": ["anchor"]})
+        self.assertEqual([c["cls"] for c in claims], ["non_responsive"])
+
+    def test_non_responsive_not_filed_when_ask_is_addressed(self):
+        ask = {"anchor": "Frame:d8f95a7b/w/045", "require": ["anchor"]}
+        cited = [ev(1, "answer", text="See the frame.", cited_anchors=["Frame:d8f95a7b/w/045"])]
+        self.assertNotIn("non_responsive", [c["cls"] for c in self.claims(cited, ask=ask)])
+        named = [ev(1, "answer", text="The source is Frame:d8f95a7b/w/045.", cited_anchors=[])]
+        self.assertNotIn("non_responsive", [c["cls"] for c in self.claims(named, ask=ask)])
+        abstain = [ev(1, "answer", text="I cannot determine that.", cited_anchors=[])]
+        self.assertNotIn("non_responsive", [c["cls"] for c in self.claims(abstain, ask=ask)])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -744,7 +744,30 @@ def _hook_non_responsive(trace, answer, card) -> list[tuple[list[str], str]]:
     Cite the FINAL `answer` event only (`final_answer_event`) — an early
     `model_turn` that happens to mention the right topic internally is not the
     delivered answer and does not count."""
-    return []
+    delivered = final_answer_event(trace)
+    ask = card.get("ask", {}) if isinstance(card, Mapping) else {}
+    required = [f for f in ask.get("require", ()) if isinstance(f, str)] if isinstance(ask, Mapping) else []
+    seq = _seq(delivered)
+    if delivered is None or seq is None or not required:
+        return []
+    payload = _answer_payload(trace, answer)
+    text = payload.get("text")
+    if not isinstance(text, str) or not text.strip():
+        return []
+    # Conservative: any structured value, citation, abstention or mention of the
+    # asked anchor / required field name counts as engaging with the ask.
+    if payload.get("cited_anchors") or any(payload.get(f) not in (None, "", [], {}) for f in required):
+        return []
+    lowered = text.lower()
+    if any(w in lowered for w in ("cannot", "can't", "unable", "not sure", "no information", "abstain", "don't know")):
+        return []
+    anchor = ask.get("anchor")
+    if isinstance(anchor, str) and anchor and anchor.lower() in lowered:
+        return []
+    if any(f.lower().replace("_", " ") in lowered or f.lower() in lowered for f in required):
+        return []
+    return [([evt_ref(seq)], "delivered answer never addresses the asked fields: "
+             f"{', '.join(required)}; no value, citation or anchor is given")]
 
 
 def _hook_wasteful(trace, answer, card) -> list[tuple[list[str], str]]:
