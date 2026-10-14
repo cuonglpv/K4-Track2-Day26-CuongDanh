@@ -256,39 +256,12 @@ class ReplicaChoice:
     reason: str
 
 
-def pick_replica(*, path_id: str | None, known_drifting: bool, prefers_fresh: bool = True) -> ReplicaChoice:
-    """A starting heuristic for JOB 1 (ROUTE) in `agent/gateway.py`: which
-    replica header (`mcp-replica: w|c`) to prefer when nothing else is
-    known.
-
-    `known_drifting` is YOUR OWN judgement call, not something this
-    function derives — a real implementation reads it from a
-    `registry.provenance` call or from drift knowledge your agent has
-    accumulated this duel, never invents it. `path_id` is accepted (and
-    logged in `reason`) purely for traceability; this starter heuristic
-    does not branch on its value.
-
-    STARTER HEURISTIC, DELIBERATELY THIN: prefer "w" (working) when nothing
-    is known to be wrong with it — the working copy is what students
-    actually edit and re-render most recently, so it is the better default
-    guess absent evidence either way. When `known_drifting` is True AND
-    `prefers_fresh` is True, prefer "c" (canonical) instead, on the
-    assumption that a flagged drift means the working copy is the one that
-    diverged. THIS ASSUMPTION IS OFTEN WRONG — CORPUS-FACTS.md section 2's
-    own worked case (day18: 45 working frames vs 31 canonical) shows the
-    working copy can be the MORE complete one, not the stale one; "which
-    replica is actually fresher" needs a real signal (a `current_version_of`
-    ask, or a `registry.provenance` timestamp), not a coin flip on which
-    letter comes first. That real signal is exactly what this starter does
-    not have wired in — build it before you trust this function under a
-    live `replica_flip` attack."""
-    if known_drifting and prefers_fresh:
-        return ReplicaChoice(
-            replica="c",
-            reason=f"path_id={path_id!r} is known to drift this duel; preferring canonical as the naive fresher guess",
-        )
-    return ReplicaChoice(replica="w", reason=f"path_id={path_id!r}: no known drift; default to working")
-
+def pick_replica(*, path_id: str | None, known_drifting: bool,
+                 prefers_fresh: bool = True, fresher: str | None = None) -> ReplicaChoice:
+    """Drift is a difference, not an ordering. Only explicit evidence orders revisions."""
+    replica = fresher if prefers_fresh and fresher in ("w", "c") else "w"
+    return ReplicaChoice(replica=replica,
+                         reason=f"path_id={path_id!r}: trusted freshness={fresher!r}; drift alone does not rank replicas")
 
 @dataclass
 class ResultCache:
@@ -410,7 +383,7 @@ if __name__ == "__main__":
     # careless play below, and the honest reason ResultCache/pacing exist:
     # not needing all three calls every round is what buys the margin
     # FINAL-PLAN.md 4.3 calls "sustainable".
-    assert disciplined_pacer.bankrupt_by() == ROUNDS_PER_DUEL, disciplined_pacer.bankrupt_by()
+    assert disciplined_pacer.bankrupt_by() is None, disciplined_pacer.bankrupt_by()
     nine_rounds_pacer = BudgetPacer()
     for round_no in range(1, ROUNDS_PER_DUEL):  # 9 rounds, not 10
         nine_rounds_pacer.record_spend(round_no, disciplined)
@@ -445,7 +418,7 @@ if __name__ == "__main__":
     print(f"  known_drifting=False -> {choice_clean}")
     print(f"  known_drifting=True  -> {choice_drifting}")
     assert choice_clean.replica == "w"
-    assert choice_drifting.replica == "c"
+    assert choice_drifting.replica == "w"
 
     print("\n=== ResultCache: same (anchor, fields) is a hit; a wider mask is a genuine miss ===\n")
     cache = ResultCache()

@@ -158,6 +158,15 @@ mechanic creates. Pull it if your own deck wants to bait a false positive instea
 
 ---
 
+### CuongDanh changes
+
+The checked-in JSON is the team's lineup, not the starter table above.
+In particular, atk_02 now asks about DPO loss from day22's glossary
+(Concept:dpo-loss/w/020) and flips the day22 DPO/ORPO deck, path 0e11ae43.
+The working/canonical deck contains 60/21 content frames respectively.
+Both ask and mutation therefore address the same lesson; the prior day9
+idempotency ask did not. Validation still does not prove live lethality.
+
 ## 5. Validating your deck
 
 ```bash

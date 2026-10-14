@@ -1,40 +1,22 @@
-"""agent — YOUR Task 3 build (FINAL-PLAN.md section 5.1: "the student's
-biggest build"). Five files, each scored differently — read agent/README.md
-first, it maps all five to what each decides and which of the 17 rubric
-classes (CONTRACTS.md section 6.1) each one can save you from.
+"""CuongDanh team entry points.
 
-    gateway.py      the control plane: Gateway.decide(cmd) -> Decision
-                     (CONTRACTS.md section 4, exactly)
-    strategy.py      discovery / delegation / caching / replica / budget
-                     policy — building blocks, not wired in by default
-    guardrails.py    grounding (real), injection/redaction/arithmetic
-                     (named stubs), abstention (real, naive)
-    telemetry.py     ctx.emit wrappers — your own side only, never scored
-    prompt.md        the system prompt LAYERED ON TOP of kit.loop.prompt's
-                     harness prompt (not a replacement for it)
-
-Public surface, re-exported for convenience — everything below is YOUR OWN
-code (RULES.md section 1: "you own, entirely: agent/"), written together in
-one pass, so — unlike `kit/`'s subpackages, which degrade import-by-import
-because several are written by other people concurrently (workspace hard
-rule 2) — these four imports are expected to always succeed together:
-
-    from agent import Command, Decision, GatewayContext, Gateway
-    from agent import BudgetPacer, ResultCache, should_delegate
-    from agent import GroundingResult, check_grounding, abstention_policy
-    from agent import Telemetry, RecordingGatewayContext
+Gateway controls outgoing tool calls. Agent is the opt-in guarded loop.
+See agent/README.md for the host integration contract and local limitations.
 """
 
 from __future__ import annotations
 
 from agent.gateway import Command, Decision, Gateway, GatewayContext
+from agent.runtime import Agent
 from agent.guardrails import (
     ArithmeticCheckResult,
+    AnswerSafetyResult,
     GroundingResult,
     InjectionScanResult,
     RedactionResult,
     abstention_policy,
     check_grounding,
+    prepare_answer,
     redact,
     scan_for_injected_instructions,
     verify_arithmetic,
@@ -54,6 +36,7 @@ from agent.strategy import (
 from agent.telemetry import RecordingGatewayContext, Telemetry
 
 __all__ = [
+    "Agent",
     # gateway.py
     "Command",
     "Decision",
@@ -69,6 +52,8 @@ __all__ = [
     "ArithmeticCheckResult",
     "verify_arithmetic",
     "abstention_policy",
+    "AnswerSafetyResult",
+    "prepare_answer",
     # strategy.py
     "BudgetPacer",
     "ReplicaChoice",
